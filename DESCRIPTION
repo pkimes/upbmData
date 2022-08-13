@@ -1,0 +1,18 @@
+Package: upbmData
+Title: Example universal Protein Binding Micorarrays (uPBMs) experiment data
+Version: 0.99.1
+Authors@R: person("Patrick", "Kimes", email = "patrick.kimes@gmail.com", role = c("aut", "cre"))
+Description: Example universal design Protein Binding Microarray (uPBM) data from an experimental series
+  of HOXC9 allelic variants. Triplicate data is provided as SummarizedExperiment objects for Alexa488 and Cy3 scans
+  separately. Alexa488 scans are provided at multiple laser powers. 
+License: file LICENSE
+biocViews: ExperimentData, TechnologyData
+Depends: R (>= 3.5)
+Suggests: BiocStyle,
+          knitr,
+          rmarkdown,
+          upbm
+VignetteBuilder: knitr
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.1.1

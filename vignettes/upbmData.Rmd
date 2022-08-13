@@ -1,0 +1,120 @@
+---
+title: "Downloading and Loading the example uPBM Data"
+author: Patrick K. Kimes
+date: "`r BiocStyle::doc_date()`"
+package: "`r BiocStyle::pkg_ver('upbmData')`"
+output:
+  BiocStyle::html_document:
+    highlight: pygments
+    toc: true
+    fig_width: 12
+    fig_height: 4
+vignette: >
+  %\VignetteIndexEntry{upbmData}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r echo=FALSE, include=FALSE}
+knitr::opts_chunk$set(tidy = FALSE, cache = TRUE, dev = "png",
+                      message = FALSE, error = FALSE, warning = TRUE)
+```
+
+# Introduction
+
+This package includes _PBMExperiment_ objects which contain universal protein binding microarray (uPBM) data for the wild type HOXC9 human transcription factor (TF), as well as three allelic variants (R193K, K195R, and R222W). Each array was scanned for Alexa488 and Cy3 intensities with a GenePix 4400 Microarray Scanner (Molecular Devices), and images were processed using GenePix Pro v7.2. GenePix Results (GPR) files are available for Alexa488 scans taken at multiple photomultiplier tube (PMT) gain values (`hoxc9alexa`) and Cy3 scans at a single PMT gain (`hoxc9cy3`). PMT gain controls the sensitivity of the scanned images, with a higher gain values leading to overall higher probe intensities. Choosing a PMT gain too small or too large can lead to probes being left or right censored (undetected or saturated).
+
+This vignette describes how the data was downloaded and loaded into R to create the _PBMExperiment_ objects in this package.
+
+```{r}
+suppressPackageStartupMessages(library(upbm))
+suppressPackageStartupMessages(library(upbmData))
+```
+
+# Downloading the data
+
+The GPR files for this allelic series can be downloaded as a single zipped file from Dropbox.
+
+```{r downlaod-data, eval = FALSE}
+out_dir <- "."
+download.file("https://www.dropbox.com/s/rqdxeu9wcbrv1vs/PBM-HOXC9.zip?dl=1",
+              destfile = file.path(out_dir, "PBM-HOXC9.zip"))
+
+unzip(file.path(out_dir, "PBM-HOXC9.zip"), exdir = out_dir)
+```
+
+Each of the 3 replicates is stored in a separate subfolder containing the corresponding GPR files. 
+
+```{r list-files, eval = FALSE}
+gpr_files <- list.files(file.path(out_dir, "PBM-HOXC9"), recursive = TRUE, full.names = TRUE)
+```
+
+# Loading the data
+
+Experiments were performed using an 8-plex design, with arrays multiplexed on custom Agilent slides. Metadata for each scan, including scan type (Alexa488 or Cy3), array index, the assayed protein, and scan parameters (PMT gain), are organized in a single table.
+
+```{r load-table}
+data(hoxc9table)
+hoxc9table
+```
+
+Given a table with rows correspond to sample scans and a `gpr` column pointing to GPR files, the `gpr2PBMExperiment()` function from the `upbm` package can be used to load scan data as a _PBMExperiment_ object for analysis. We use this function to load data from the GPR files in `hoxc9table`.
+
+Since we know that the experiments were performed using the same `8x60k_v1` design, we load the corresponding _PBMDesign_ object from the `upbmAux` package and specify this design when loading the samples.
+
+```{r load-upbm-suite, eval = FALSE}
+data(pbm_8x60k_v1, package = "upbmAux")
+```
+
+By default, the median foreground and background pixel intensities are loaded from the GPR scans.
+
+```{r read-data, eval = FALSE}
+hoxc9data <- upbm::gpr2PBMExperiment(scans = hoxc9table, probes = pbm_8x60k_v1)
+```
+
+For downstream analysis, Alexa488 and Cy3 scans are separated and saved as two _PBMExperiment_ objects.
+
+```{r save-data, eval = FALSE}
+hoxc9alexa <- hoxc9data[, colData(hoxc9data)$type == "Alexa"]
+hoxc9cy3 <- hoxc9data[, colData(hoxc9data)$type == "Cy3"]
+
+save(hoxc9alexa, file = file.path("..", "data", "hoxc9alexa.rda"), compress = "xz")
+save(hoxc9cy3, file = file.path("..", "data", "hoxc9cy3.rda"), compress = "xz")
+```
+
+We can load the saved _PBMExperiment_ objects.
+
+```{r load-data}
+data(hoxc9alexa)
+data(hoxc9cy3)
+
+hoxc9alexa
+hoxc9cy3
+```
+
+Foreground and background intensities at each probe is stored in the `"fore"` and `"back"` assays of both objects.
+
+```{r check-assays}
+assay(hoxc9alexa, "fore")[1:10, 1:5]
+assay(hoxc9alexa, "back")[1:10, 1:5]
+```
+
+The metadata organized in `hoxc9table` is stored the `colData` of the returned _PBMExperiment_.
+
+```{r check-colData}
+colData(hoxc9alexa)
+```
+
+Similarly, the probe information from `pbm_8x60k_v1` is stored in the `rowData` of the returned object.
+
+```{r check-rowData}
+rowData(hoxc9alexa)
+```
+
+# Session Information
+
+```{r sessinfo}
+sessionInfo()
+```
